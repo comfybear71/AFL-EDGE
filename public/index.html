@@ -1820,6 +1820,212 @@
   @media (min-width: 650px) {
     .view { max-width: 640px; }
   }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     HAMBURGER MENU
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .hamburger-btn {
+    width: 34px;
+    height: 34px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 0;
+    transition: all 0.2s;
+  }
+
+  .hamburger-btn:hover {
+    border-color: var(--accent);
+  }
+
+  .hamburger-btn span {
+    display: block;
+    width: 16px;
+    height: 2px;
+    background: var(--text-secondary);
+    border-radius: 2px;
+    transition: all 0.3s;
+  }
+
+  .hamburger-btn.active span:nth-child(1) {
+    transform: translateY(6px) rotate(45deg);
+  }
+  .hamburger-btn.active span:nth-child(2) {
+    opacity: 0;
+  }
+  .hamburger-btn.active span:nth-child(3) {
+    transform: translateY(-6px) rotate(-45deg);
+  }
+
+  .menu-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 200;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s;
+  }
+
+  .menu-overlay.open {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .menu-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 300px;
+    max-width: 85vw;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    z-index: 201;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .menu-panel.open {
+    transform: translateX(0);
+  }
+
+  .menu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .menu-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    color: var(--text);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .menu-close {
+    width: 32px;
+    height: 32px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .menu-close:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .menu-section {
+    padding: 18px;
+  }
+
+  .menu-section-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 14px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  .menu-section-desc {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  .theme-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .theme-swatch {
+    position: relative;
+    border-radius: var(--radius-sm);
+    padding: 10px 6px 8px;
+    text-align: center;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    overflow: hidden;
+  }
+
+  .theme-swatch:hover {
+    transform: scale(1.05);
+  }
+
+  .theme-swatch.selected {
+    border-color: #fff;
+    box-shadow: 0 0 12px rgba(255,255,255,0.25);
+  }
+
+  .theme-swatch-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+
+  .theme-swatch-check {
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    font-size: 10px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .theme-swatch.selected .theme-swatch-check {
+    opacity: 1;
+  }
+
+  .theme-reset-btn {
+    width: 100%;
+    margin-top: 12px;
+    padding: 8px;
+    border-radius: var(--radius-xs);
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--muted);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .theme-reset-btn:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
 </style>
 </head>
 <body>
@@ -1844,6 +2050,9 @@
         <option value="2024">2024</option>
         <option value="2023">2023</option>
       </select>
+      <button class="hamburger-btn" id="hamburger-btn" onclick="toggleMenu()" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
     </div>
   </div>
   <div class="nav-tabs" id="nav-tabs">
@@ -1854,6 +2063,23 @@
     <div class="nav-tab" data-view="compare">Compare</div>
   </div>
 </header>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     SLIDE-OUT MENU
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<div class="menu-overlay" id="menu-overlay" onclick="toggleMenu()"></div>
+<div class="menu-panel" id="menu-panel">
+  <div class="menu-header">
+    <span class="menu-title">Settings</span>
+    <button class="menu-close" onclick="toggleMenu()">&times;</button>
+  </div>
+  <div class="menu-section">
+    <div class="menu-section-title">Team Theme</div>
+    <div class="menu-section-desc">Colour the UI in your club's colours</div>
+    <div class="theme-grid" id="theme-grid"></div>
+    <button class="theme-reset-btn" id="theme-reset-btn" onclick="resetTheme()">Reset to Default</button>
+  </div>
+</div>
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
      DASHBOARD VIEW
@@ -2218,6 +2444,155 @@
      JAVASCRIPT
      ═══════════════════════════════════════════════════════════════════════════ -->
 <script>
+// ─── Team Themes ─────────────────────────────────────────────────────────────
+const TEAM_THEMES = {
+  'Adelaide':          { primary: '#002b5c', secondary: '#ffd700', accent: '#ffd700', accentText: '#000' },
+  'Brisbane Lions':    { primary: '#7b0042', secondary: '#002b5c', accent: '#ffd700', accentText: '#000' },
+  'Carlton':           { primary: '#001f5b', secondary: '#000d30', accent: '#7baaf7', accentText: '#000' },
+  'Collingwood':       { primary: '#222222', secondary: '#000000', accent: '#ffffff', accentText: '#000' },
+  'Essendon':          { primary: '#cc0000', secondary: '#000000', accent: '#ff4444', accentText: '#fff' },
+  'Fremantle':         { primary: '#5c2d91', secondary: '#3d1560', accent: '#b380e0', accentText: '#000' },
+  'Geelong':           { primary: '#003087', secondary: '#001a4d', accent: '#6baaf0', accentText: '#000' },
+  'Gold Coast':        { primary: '#d4001e', secondary: '#ffd700', accent: '#ffd700', accentText: '#000' },
+  'GWS Giants':        { primary: '#f47920', secondary: '#c85000', accent: '#ffb380', accentText: '#000' },
+  'Hawthorn':          { primary: '#4d2004', secondary: '#1a0c00', accent: '#fbbf24', accentText: '#000' },
+  'Melbourne':         { primary: '#001f5b', secondary: '#cc0000', accent: '#ff6666', accentText: '#000' },
+  'North Melbourne':   { primary: '#003da5', secondary: '#001a4d', accent: '#66a3ff', accentText: '#000' },
+  'Port Adelaide':     { primary: '#008aaa', secondary: '#000000', accent: '#00d4ff', accentText: '#000' },
+  'Richmond':          { primary: '#000000', secondary: '#1a1a00', accent: '#ffd700', accentText: '#000' },
+  'St Kilda':          { primary: '#cc0000', secondary: '#000000', accent: '#ff6666', accentText: '#000' },
+  'Sydney':            { primary: '#d40000', secondary: '#800000', accent: '#ff6666', accentText: '#000' },
+  'West Coast':        { primary: '#002b5c', secondary: '#00194d', accent: '#ffd700', accentText: '#000' },
+  'Western Bulldogs':  { primary: '#001f5b', secondary: '#cc0000', accent: '#ff6666', accentText: '#000' },
+};
+
+// Swatch gradient colours (for the grid buttons)
+const TEAM_SWATCH = {
+  'Adelaide':         ['#002b5c','#ffd700'], 'Brisbane Lions':  ['#7b0042','#ffd700'],
+  'Carlton':          ['#001f5b','#7baaf7'], 'Collingwood':     ['#222','#fff'],
+  'Essendon':         ['#cc0000','#000'],    'Fremantle':       ['#5c2d91','#fff'],
+  'Geelong':          ['#003087','#fff'],    'Gold Coast':      ['#d4001e','#ffd700'],
+  'GWS Giants':       ['#f47920','#333'],    'Hawthorn':        ['#4d2004','#fbbf24'],
+  'Melbourne':        ['#001f5b','#cc0000'], 'North Melbourne': ['#003da5','#fff'],
+  'Port Adelaide':    ['#008aaa','#000'],    'Richmond':        ['#ffd700','#000'],
+  'St Kilda':         ['#cc0000','#fff'],    'Sydney':          ['#d40000','#fff'],
+  'West Coast':       ['#002b5c','#ffd700'], 'Western Bulldogs':['#001f5b','#cc0000'],
+};
+
+const DEFAULT_VARS = {
+  '--bg': '#06090e', '--surface': '#0c1017', '--card': '#111822', '--card-hover': '#151d2a',
+  '--border': '#1a2332', '--border-light': '#243044',
+  '--accent': '#00c8ff', '--accent-dim': 'rgba(0, 200, 255, 0.12)',
+  '--accent-glow': 'rgba(0, 200, 255, 0.25)',
+};
+
+function buildThemeGrid() {
+  const grid = document.getElementById('theme-grid');
+  const saved = localStorage.getItem('afl-edge-theme');
+  grid.innerHTML = '';
+  for (const [team, colors] of Object.entries(TEAM_SWATCH)) {
+    const sw = document.createElement('div');
+    sw.className = 'theme-swatch' + (saved === team ? ' selected' : '');
+    sw.style.background = `linear-gradient(135deg, ${colors[0]}, ${colors[1]})`;
+    sw.style.color = '#fff';
+    sw.innerHTML = `<span class="theme-swatch-check">&#10003;</span><div class="theme-swatch-name">${team.replace(' Lions','').replace(' Giants','').replace('Western ','W. ').replace('North ','N. ').replace('West ','W. ').replace('Port ','Pt. ')}</div>`;
+    sw.addEventListener('click', () => applyTeamTheme(team));
+    grid.appendChild(sw);
+  }
+}
+
+function applyTeamTheme(team) {
+  const t = TEAM_THEMES[team];
+  if (!t) return;
+  const r = document.documentElement.style;
+
+  // Darken the primary for backgrounds
+  r.setProperty('--bg', darkenHex(t.primary, 0.85));
+  r.setProperty('--surface', darkenHex(t.primary, 0.75));
+  r.setProperty('--card', darkenHex(t.primary, 0.65));
+  r.setProperty('--card-hover', darkenHex(t.primary, 0.58));
+  r.setProperty('--border', mixHex(t.primary, '#ffffff', 0.15));
+  r.setProperty('--border-light', mixHex(t.primary, '#ffffff', 0.22));
+  r.setProperty('--accent', t.accent);
+  r.setProperty('--accent-dim', hexToRgba(t.accent, 0.12));
+  r.setProperty('--accent-glow', hexToRgba(t.accent, 0.25));
+
+  // Update logo icon gradient
+  const logoIcon = document.querySelector('.logo-icon');
+  if (logoIcon) {
+    logoIcon.style.background = `linear-gradient(135deg, ${t.accent}, ${darkenHex(t.accent, 0.7)})`;
+    logoIcon.style.color = t.accentText;
+  }
+
+  // Update season select
+  const sel = document.querySelector('.season-select');
+  if (sel) {
+    sel.style.background = `linear-gradient(135deg, ${t.accent}, ${darkenHex(t.accent, 0.7)})`;
+    sel.style.color = t.accentText;
+  }
+
+  localStorage.setItem('afl-edge-theme', team);
+  // Update swatch selection
+  document.querySelectorAll('.theme-swatch').forEach(s => {
+    s.classList.toggle('selected', s.querySelector('.theme-swatch-name').textContent ===
+      team.replace(' Lions','').replace(' Giants','').replace('Western ','W. ').replace('North ','N. ').replace('West ','W. ').replace('Port ','Pt. '));
+  });
+}
+
+function resetTheme() {
+  const r = document.documentElement.style;
+  for (const [prop, val] of Object.entries(DEFAULT_VARS)) {
+    r.setProperty(prop, val);
+  }
+  // Reset logo icon
+  const logoIcon = document.querySelector('.logo-icon');
+  if (logoIcon) { logoIcon.style.background = ''; logoIcon.style.color = ''; }
+  // Reset season select
+  const sel = document.querySelector('.season-select');
+  if (sel) { sel.style.background = ''; sel.style.color = ''; }
+
+  localStorage.removeItem('afl-edge-theme');
+  document.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('selected'));
+}
+
+function toggleMenu() {
+  const panel = document.getElementById('menu-panel');
+  const overlay = document.getElementById('menu-overlay');
+  const btn = document.getElementById('hamburger-btn');
+  const isOpen = panel.classList.contains('open');
+  panel.classList.toggle('open', !isOpen);
+  overlay.classList.toggle('open', !isOpen);
+  btn.classList.toggle('active', !isOpen);
+}
+
+// Colour helpers
+function hexToRgb(hex) {
+  hex = hex.replace('#','');
+  if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+  return [parseInt(hex.slice(0,2),16), parseInt(hex.slice(2,4),16), parseInt(hex.slice(4,6),16)];
+}
+function rgbToHex(r,g,b) {
+  return '#'+[r,g,b].map(x => Math.max(0,Math.min(255,Math.round(x))).toString(16).padStart(2,'0')).join('');
+}
+function darkenHex(hex, amount) {
+  const [r,g,b] = hexToRgb(hex);
+  return rgbToHex(r*amount, g*amount, b*amount);
+}
+function mixHex(hex1, hex2, ratio) {
+  const [r1,g1,b1] = hexToRgb(hex1);
+  const [r2,g2,b2] = hexToRgb(hex2);
+  return rgbToHex(r1+(r2-r1)*ratio, g1+(g2-g1)*ratio, b1+(b2-b1)*ratio);
+}
+function hexToRgba(hex, alpha) {
+  const [r,g,b] = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// Init menu + restore saved theme
+buildThemeGrid();
+const savedTheme = localStorage.getItem('afl-edge-theme');
+if (savedTheme && TEAM_THEMES[savedTheme]) applyTeamTheme(savedTheme);
+
 // ─── Config ──────────────────────────────────────────────────────────────────
 const API = '/api';
 let currentYear = null;      // set after first API response
