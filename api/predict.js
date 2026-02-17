@@ -12,18 +12,28 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
 
   const matchId = parseInt(req.query.matchId);
+  const reqYear = parseInt(req.query.year) || null;
   if (!matchId) {
     return res.status(400).json({ error: 'matchId is required. e.g. /api/predict?matchId=123' });
   }
 
   try {
-    const year = new Date().getFullYear();
+    let year = reqYear || new Date().getFullYear();
 
     // ── 1. Load all data in parallel ─────────────────────────────────────────
-    const [allGames, standings] = await Promise.all([
+    let [allGames, standings] = await Promise.all([
       squiggle.getGames(year),
       squiggle.getStandings(year),
     ]);
+
+    // If current year has no data, fall back to 2025
+    if (allGames.length === 0 && !reqYear) {
+      year = 2025;
+      [allGames, standings] = await Promise.all([
+        squiggle.getGames(year),
+        squiggle.getStandings(year),
+      ]);
+    }
 
     // Find the specific match
     const match = allGames.find(g => g.id === matchId);

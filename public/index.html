@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>AFL Edge — 2026 Season Dashboard</title>
+<title>AFL Edge — Season Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -95,15 +95,114 @@
     gap: 10px;
   }
 
-  .season-badge {
+  .season-select {
     background: linear-gradient(135deg, var(--accent), #0090cc);
     color: #000;
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 800;
-    font-size: 11px;
-    padding: 4px 10px;
+    font-size: 12px;
+    padding: 4px 8px 4px 10px;
     border-radius: 20px;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
+    border: none;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23000'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    padding-right: 22px;
+  }
+
+  .season-select option {
+    background: var(--card);
+    color: var(--text);
+  }
+
+  /* Round Navigator */
+  .round-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .round-nav-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .round-nav-btn:hover:not(:disabled) {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+  }
+
+  .round-nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .round-nav-label {
+    flex: 1;
+    text-align: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--text);
+    letter-spacing: 0.5px;
+  }
+
+  .round-nav-sub {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+
+  .round-pills {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 2px 0;
+  }
+
+  .round-pills::-webkit-scrollbar { display: none; }
+
+  .round-pill {
+    flex-shrink: 0;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    background: var(--card);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .round-pill:hover { border-color: var(--accent); color: var(--text-secondary); }
+  .round-pill.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
   }
 
   .live-indicator {
@@ -1425,7 +1524,11 @@
         <div class="live-dot"></div>
         LIVE
       </div>
-      <div class="season-badge">2026 SEASON</div>
+      <select class="season-select" id="season-select" onchange="changeSeason(this.value)">
+        <option value="2025">2025</option>
+        <option value="2024">2024</option>
+        <option value="2023">2023</option>
+      </select>
     </div>
   </div>
   <div class="nav-tabs" id="nav-tabs">
@@ -1443,7 +1546,7 @@
 
   <!-- Hero Banner -->
   <div class="hero-banner anim-in">
-    <div class="hero-title">2026 <span>Season</span></div>
+    <div class="hero-title" id="hero-title">2025 <span>Season</span></div>
     <div class="hero-sub" id="hero-sub">Connecting to Squiggle API...</div>
     <div class="hero-stats" id="hero-stats">
       <div class="hero-stat">
@@ -1456,14 +1559,27 @@
       </div>
       <div class="hero-stat">
         <div class="hero-stat-value" id="stat-upcoming">--</div>
-        <div class="hero-stat-label">Upcoming</div>
+        <div class="hero-stat-label">This Round</div>
       </div>
     </div>
   </div>
 
-  <!-- Live / Recent Scores -->
-  <div class="section-label anim-in">
-    This Round <span class="count" id="round-count">0</span>
+  <!-- Round Navigator -->
+  <div class="round-nav anim-in" id="round-nav">
+    <button class="round-nav-btn" id="round-prev" onclick="changeRound(-1)">&lt;</button>
+    <div class="round-nav-label" id="round-nav-label">
+      Round --
+      <div class="round-nav-sub" id="round-nav-sub">Loading...</div>
+    </div>
+    <button class="round-nav-btn" id="round-next" onclick="changeRound(1)">&gt;</button>
+  </div>
+
+  <!-- Round Pills (quick jump) -->
+  <div class="round-pills anim-in" id="round-pills"></div>
+
+  <!-- Scores for selected round -->
+  <div class="section-label anim-in" style="margin-top:12px">
+    Round Matches <span class="count" id="round-count">0</span>
   </div>
   <div class="scores-ticker anim-in" id="scores-ticker">
     <div class="loading-state" style="width:100%">
@@ -1625,7 +1741,7 @@
      ═══════════════════════════════════════════════════════════════════════════ -->
 <div class="view" id="view-ladder">
 
-  <div class="section-label anim-in">2026 AFL Ladder</div>
+  <div class="section-label anim-in" id="ladder-title">AFL Ladder</div>
 
   <div class="ladder-full anim-in" id="ladder-full">
     <div class="ladder-full-header">
@@ -1698,8 +1814,10 @@
      ═══════════════════════════════════════════════════════════════════════════ -->
 <script>
 // ─── Config ──────────────────────────────────────────────────────────────────
-const YEAR = 2026;
 const API = '/api';
+let currentYear = null;      // set after first API response
+let currentRound = null;
+let availableRounds = [];
 let allGames = [];
 let allStandings = [];
 let upcomingMatches = [];
@@ -1736,31 +1854,48 @@ function switchView(viewId) {
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === `view-${viewId}`));
 
   // Lazy-load view data
-  if (viewId === 'ladder' && document.getElementById('ladder-full-body').children.length <= 1) {
+  if (viewId === 'ladder' && !document.getElementById('ladder-full-body').dataset.loaded) {
     loadLadderFull();
   }
   if (viewId === 'stats' && document.getElementById('ss-total-games').textContent === '--') {
     loadStats();
   }
-  if (viewId === 'matches' && document.getElementById('game-tabs').children.length <= 1) {
+  if (viewId === 'matches' && !document.getElementById('game-tabs').dataset.loaded) {
     loadMatchesView();
   }
 }
 
 // ─── Initial Load ────────────────────────────────────────────────────────────
-window.addEventListener('load', async () => {
+window.addEventListener('load', () => loadSeason());
+
+async function loadSeason(year = null, round = null) {
   try {
-    // Fetch upcoming matches + ladder in parallel
+    // Build query params
+    const upParams = new URLSearchParams();
+    const ladParams = new URLSearchParams();
+    if (year) { upParams.set('year', year); ladParams.set('year', year); }
+    if (round) upParams.set('round', round);
+
+    // Fetch matches + ladder in parallel
     const [upRes, ladRes] = await Promise.all([
-      fetch(`${API}/upcoming`).then(r => r.json()).catch(() => null),
-      fetch(`${API}/ladder`).then(r => r.json()).catch(() => null),
+      fetch(`${API}/upcoming?${upParams}`).then(r => r.json()).catch(() => null),
+      fetch(`${API}/ladder?${ladParams}`).then(r => r.json()).catch(() => null),
     ]);
 
-    // Process upcoming
-    if (upRes && upRes.matches) {
-      upcomingMatches = upRes.matches;
+    // Track which year/round the API resolved to
+    if (upRes) {
+      currentYear = upRes.year;
+      currentRound = upRes.round;
+      availableRounds = upRes.availableRounds || [];
+
+      // Sync the dropdown
+      const select = document.getElementById('season-select');
+      select.value = String(currentYear);
+
+      upcomingMatches = upRes.matches || [];
       renderScoresTicker(upcomingMatches);
       updateHeroStats(upRes);
+      renderRoundNav();
     } else {
       renderScoresTickerEmpty();
     }
@@ -1773,31 +1908,122 @@ window.addEventListener('load', async () => {
 
     // Show live indicator if games in progress
     const liveGames = upcomingMatches.filter(m => m.complete > 0 && m.complete < 100);
-    if (liveGames.length > 0) {
-      document.getElementById('live-indicator').style.display = 'flex';
-    }
+    document.getElementById('live-indicator').style.display = liveGames.length > 0 ? 'flex' : 'none';
+
+    // Reset other views so they reload with new season
+    resetMatchesView();
+    resetLadderView();
+    resetStatsView();
 
   } catch (e) {
     console.warn('API not available — showing offline state:', e);
     renderOfflineState();
   }
-});
+}
+
+// ─── Season / Round Controls ─────────────────────────────────────────────────
+function changeSeason(year) {
+  loadSeason(parseInt(year));
+}
+
+function changeRound(delta) {
+  const idx = availableRounds.indexOf(currentRound);
+  const newIdx = idx + delta;
+  if (newIdx >= 0 && newIdx < availableRounds.length) {
+    loadSeason(currentYear, availableRounds[newIdx]);
+  }
+}
+
+function jumpToRound(round) {
+  loadSeason(currentYear, round);
+}
+
+function renderRoundNav() {
+  const label = document.getElementById('round-nav-label');
+  const sub = document.getElementById('round-nav-sub');
+  const prevBtn = document.getElementById('round-prev');
+  const nextBtn = document.getElementById('round-next');
+
+  label.innerHTML = `Round ${currentRound || '--'}<div class="round-nav-sub">${currentYear} Season · ${availableRounds.length} rounds</div>`;
+
+  const idx = availableRounds.indexOf(currentRound);
+  prevBtn.disabled = idx <= 0;
+  nextBtn.disabled = idx >= availableRounds.length - 1;
+
+  // Render round pills
+  const pills = document.getElementById('round-pills');
+  pills.innerHTML = availableRounds.map(r =>
+    `<div class="round-pill${r === currentRound ? ' active' : ''}" onclick="jumpToRound(${r})">R${r}</div>`
+  ).join('');
+
+  // Scroll active pill into view
+  setTimeout(() => {
+    const active = pills.querySelector('.active');
+    if (active) active.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' });
+  }, 50);
+}
+
+function resetMatchesView() {
+  document.getElementById('game-tabs').innerHTML = `
+    <div class="loading-state" style="width:100%;padding:20px">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Loading fixtures...</div>
+    </div>`;
+  hideMatchContent();
+  document.getElementById('match-loading').style.display = 'flex';
+  document.getElementById('match-loading').innerHTML = `
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Select a match above</div>`;
+  document.getElementById('match-empty').style.display = 'none';
+  // Mark as needing reload
+  document.getElementById('game-tabs').dataset.loaded = '';
+}
+
+function resetLadderView() {
+  document.getElementById('ladder-full-body').innerHTML = `
+    <div class="loading-state">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Loading ladder...</div>
+    </div>`;
+  document.getElementById('ladder-full-body').dataset.loaded = '';
+}
+
+function resetStatsView() {
+  document.getElementById('ss-total-games').textContent = '--';
+  document.getElementById('ss-avg-total').textContent = '--';
+  document.getElementById('ss-avg-margin').textContent = '--';
+  document.getElementById('ss-home-win').textContent = '--';
+}
 
 // ─── Dashboard: Hero Stats ───────────────────────────────────────────────────
 function updateHeroStats(upRes) {
   const matches = upRes.matches || [];
-  const round = matches.length > 0 ? matches[0].round : '--';
+  const round = upRes.round || '--';
+  const year = upRes.year || currentYear;
+  const totalRounds = upRes.totalRounds || 0;
 
+  document.getElementById('hero-title').innerHTML = `${year} <span>Season</span>`;
   document.getElementById('stat-round').textContent = round || '--';
   document.getElementById('stat-upcoming').textContent = matches.length;
-  document.getElementById('hero-sub').textContent =
-    matches.length > 0
-      ? `Round ${round} — ${matches.length} match${matches.length !== 1 ? 'es' : ''} this round`
-      : 'Season data loading from Squiggle API';
 
-  // Games played needs the full games list — we'll estimate from round
+  // Count completed games in the round
+  const completed = matches.filter(m => m.complete === 100).length;
+  const allDone = matches.length > 0 && completed === matches.length;
+
+  if (allDone) {
+    document.getElementById('hero-sub').textContent =
+      `Round ${round} complete — ${matches.length} match${matches.length !== 1 ? 'es' : ''} played`;
+  } else if (matches.length > 0) {
+    document.getElementById('hero-sub').textContent =
+      `Round ${round} — ${matches.length} match${matches.length !== 1 ? 'es' : ''} this round`;
+  } else {
+    document.getElementById('hero-sub').textContent = 'No data for this season yet';
+  }
+
+  // Estimate games played (rounds before this one * 9 games per round)
   if (round && typeof round === 'number') {
-    document.getElementById('stat-games').textContent = Math.max(0, (round - 1) * 9);
+    const gamesBeforeThisRound = Math.max(0, (round - 1) * 9);
+    document.getElementById('stat-games').textContent = gamesBeforeThisRound + completed;
   }
 }
 
@@ -1903,18 +2129,23 @@ async function loadMatchesView() {
   try {
     let matches = upcomingMatches;
     if (matches.length === 0) {
-      const res = await fetch(`${API}/upcoming`).then(r => r.json());
+      const params = new URLSearchParams();
+      if (currentYear) params.set('year', currentYear);
+      if (currentRound) params.set('round', currentRound);
+      const res = await fetch(`${API}/upcoming?${params}`).then(r => r.json());
       matches = res.matches || [];
       upcomingMatches = matches;
     }
 
     if (matches.length === 0) {
       tabsContainer.innerHTML = '';
+      tabsContainer.dataset.loaded = 'yes';
       document.getElementById('match-loading').style.display = 'none';
       document.getElementById('match-empty').style.display = 'block';
       return;
     }
 
+    tabsContainer.dataset.loaded = 'yes';
     tabsContainer.innerHTML = matches.slice(0, 9).map((m, i) => `
       <div class="game-tab${i === 0 ? ' active' : ''}" onclick="selectMatchTab(this, ${m.id})">
         <span>${abbrev(m.hteam)}</span><span>v</span><span>${abbrev(m.ateam)}</span>
@@ -1942,7 +2173,9 @@ async function selectMatch(matchId) {
   document.getElementById('match-loading').style.display = 'flex';
 
   try {
-    const res = await fetch(`${API}/predict?matchId=${matchId}`);
+    const params = new URLSearchParams({ matchId });
+    if (currentYear) params.set('year', currentYear);
+    const res = await fetch(`${API}/predict?${params}`);
     const data = await res.json();
 
     if (data.error) {
@@ -2169,10 +2402,14 @@ async function loadLadderFull() {
   try {
     let standings = allStandings;
     if (standings.length === 0) {
-      const res = await fetch(`${API}/ladder`).then(r => r.json());
+      const params = new URLSearchParams();
+      if (currentYear) params.set('year', currentYear);
+      const res = await fetch(`${API}/ladder?${params}`).then(r => r.json());
       standings = res.standings || [];
       allStandings = standings;
     }
+    body.dataset.loaded = 'yes';
+    document.getElementById('ladder-title').textContent = `${currentYear || ''} AFL Ladder`;
 
     if (standings.length === 0) {
       body.innerHTML = `<div class="empty-state">
@@ -2214,7 +2451,9 @@ async function loadLadderFull() {
 // ─── Stats View ──────────────────────────────────────────────────────────────
 async function loadStats() {
   try {
-    const res = await fetch(`${API}/ladder`).then(r => r.json());
+    const params = new URLSearchParams();
+    if (currentYear) params.set('year', currentYear);
+    const res = await fetch(`${API}/ladder?${params}`).then(r => r.json());
     const standings = res.standings || [];
     if (standings.length === 0) {
       document.getElementById('ss-total-games').textContent = '0';
@@ -2328,7 +2567,10 @@ function renderOfflineState() {
 // ─── Auto-refresh (every 60s if live games) ──────────────────────────────────
 setInterval(async () => {
   try {
-    const res = await fetch(`${API}/upcoming`).then(r => r.json()).catch(() => null);
+    const params = new URLSearchParams();
+    if (currentYear) params.set('year', currentYear);
+    if (currentRound) params.set('round', currentRound);
+    const res = await fetch(`${API}/upcoming?${params}`).then(r => r.json()).catch(() => null);
     if (res && res.matches) {
       upcomingMatches = res.matches;
       const liveGames = res.matches.filter(m => m.complete > 0 && m.complete < 100);
