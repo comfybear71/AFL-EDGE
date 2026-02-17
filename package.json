@@ -1,11 +1,7 @@
 {
   "name": "afl-edge",
-  "version": "1.0.0",
-  "description": "AFL match & player prediction tool — Vercel deployment",
-  "dependencies": {
-    "dotenv": "^16.4.5"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  }
+  "version": "2.0.0",
+  "description": "AFL prediction tool — powered by Squiggle API (free, no token needed)",
+  "dependencies": {},
+  "engines": { "node": ">=18.0.0" }
 }
