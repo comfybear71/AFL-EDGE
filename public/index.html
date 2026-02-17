@@ -1,1 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>AFL Edge — Match Predictor</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0d12;
+    --surface: #111620;
+    --card: #161c28;
+    --border: #1e2738;
+    --accent: #00c2ff;
+    --accent2: #ff6b35;
+    --green: #00e676;
+    --yellow: #ffd600;
+    --red: #ff4444;
+    --text: #e8edf5;
+    --muted: #5a6478;
+    --label: #8a94a8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(180deg, #0d1320 0%, transparent 100%);
+    padding: 16px 16px 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .logo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 24px;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  .logo span {
+    color: var(--accent);
+  }
+
+  .round-badge {
+    background: var(--accent);
+    color: #000;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+  }
+
+  /* GAME TABS */
+  .game-tabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 14px;
+    scrollbar-width: none;
+  }
+  .game-tabs::-webkit-scrollbar { display: none; }
+
+  .game-tab {
+    flex-shrink: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--label);
+    white-space: nowrap;
+  }
+
+  .game-tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+  }
+
+  .game-tab .live-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+  }
+
+  /* MAIN CONTENT */
+  main {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  /* MATCH HERO CARD */
+  .match-hero {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .match-hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  .match-header {
+    padding: 16px 16px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .match-info {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .match-time {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+  }
+
+  .teams-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px 16px;
+    gap: 12px;
+  }
+
+  .team-block {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .team-logo-wrap {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 16px;
+    letter-spacing: -0.5px;
+  }
+
+  .team-logo-wrap.syd { background: linear-gradient(135deg, #d40000, #800000); color: #fff; }
+  .team-logo-wrap.car { background: linear-gradient(135deg, #001f5b, #000d30); color: #fff; }
+  .team-logo-wrap.gcs { background: linear-gradient(135deg, #ffcd00, #cc9900); color: #000; }
+  .team-logo-wrap.gee { background: linear-gradient(135deg, #003087, #001a4d); color: #fff; }
+  .team-logo-wrap.gws { background: linear-gradient(135deg, #f47920, #c85000); color: #fff; }
+  .team-logo-wrap.col { background: linear-gradient(135deg, #1a1a1a, #000); color: #fff; border: 2px solid #333; }
+
+  .team-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    text-align: center;
+    color: var(--text);
+  }
+
+  .team-form {
+    display: flex;
+    gap: 3px;
+  }
+
+  .form-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    font-size: 8px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif;
+  }
+
+  .form-dot.w { background: var(--green); color: #000; }
+  .form-dot.l { background: #2a1a1a; color: var(--red); border: 1px solid var(--red); }
+
+  .vs-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .vs-text {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 22px;
+    color: var(--muted);
+  }
+
+  .venue-text {
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 500;
+    text-align: center;
+    max-width: 70px;
+    line-height: 1.3;
+  }
+
+  /* WIN PROBABILITY BAR */
+  .prob-section {
+    border-top: 1px solid var(--border);
+    padding: 12px 16px;
+  }
+
+  .prob-label {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--label);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .prob-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--border);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .prob-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--accent), #0090cc);
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .prob-numbers {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+  }
+
+  .prob-pct {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    color: var(--accent);
+  }
+
+  .prob-pct.away {
+    color: var(--label);
+  }
+
+  /* PREDICTED SCORE */
+  .pred-score {
+    border-top: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .pred-score-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .pred-score-values {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .pred-score-team {
+    text-align: center;
+  }
+
+  .pred-score-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 28px;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .pred-score-team-name {
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 600;
+    margin-top: 2px;
+  }
+
+  .pred-score-dash {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 20px;
+    color: var(--border);
+  }
+
+  .confidence-chip {
+    background: rgba(0, 230, 118, 0.12);
+    border: 1px solid rgba(0, 230, 118, 0.3);
+    color: var(--green);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+  }
+
+  .confidence-chip.medium {
+    background: rgba(255, 214, 0, 0.12);
+    border-color: rgba(255, 214, 0, 0.3);
+    color: var(--yellow);
+  }
+
+  /* SECTION HEADER */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2px;
+  }
+
+  .section-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    color: var(--text);
+  }
+
+  .section-sub {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 500;
+    margin-top: 2px;
+  }
+
+  /* MARKET CARDS */
+  .market-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .market-title {
+    padding: 12px 14px 8px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 14px;
+    color: var(--label);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .market-row {
+    display: flex;
+    align-items: center;
+    padding: 11px 14px;
+    border-bottom: 1px solid rgba(30, 39, 56, 0.6);
+    gap: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+  }
+
+  .market-row:last-child { border-bottom: none; }
+  .market-row:hover { background: rgba(0, 194, 255, 0.04); }
+
+  .market-row.recommended {
+    background: rgba(0, 194, 255, 0.06);
+  }
+
+  .rec-badge {
+    position: absolute;
+    right: 56px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--accent);
+    color: #000;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+  }
+
+  .market-team-logo {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .market-bet-name {
+    flex: 1;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  .market-bet-sub {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 400;
+    margin-top: 1px;
+  }
+
+  .market-odds {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 16px;
+    color: var(--text);
+    min-width: 52px;
+    text-align: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+
+  .market-odds:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+  }
+
+  /* PLAYER PROPS */
+  .player-prop-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(30, 39, 56, 0.6);
+    gap: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .player-prop-row:last-child { border-bottom: none; }
+  .player-prop-row:hover { background: rgba(0, 194, 255, 0.04); }
+
+  .player-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 13px;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .player-info {
+    flex: 1;
+  }
+
+  .player-name {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  .player-team-pos {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+
+  .player-stat-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+  }
+
+  .player-prediction {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--text);
+  }
+
+  .player-avg {
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .stat-bar-wrap {
+    margin-top: 6px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .stat-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent);
+  }
+
+  /* INSIGHT CARD */
+  .insight-card {
+    background: linear-gradient(135deg, rgba(0, 194, 255, 0.08), rgba(255, 107, 53, 0.05));
+    border: 1px solid rgba(0, 194, 255, 0.2);
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .insight-icon {
+    width: 32px;
+    height: 32px;
+    background: rgba(0, 194, 255, 0.15);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .insight-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 14px;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .insight-text {
+    font-size: 13px;
+    color: var(--label);
+    line-height: 1.5;
+  }
+
+  /* KEY FACTORS */
+  .factor-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(30, 39, 56, 0.6);
+  }
+
+  .factor-row:last-child { border-bottom: none; }
+
+  .factor-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--label);
+    flex: 1;
+  }
+
+  .factor-teams {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .factor-team {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  .factor-team.win { background: rgba(0, 230, 118, 0.15); color: var(--green); }
+  .factor-team.lose { background: rgba(255, 68, 68, 0.1); color: var(--red); }
+  .factor-team.draw { background: rgba(90, 100, 120, 0.15); color: var(--muted); }
+
+  .factor-edge {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    min-width: 50px;
+    text-align: right;
+  }
+
+  .factor-edge.high { color: var(--green); }
+  .factor-edge.mid { color: var(--yellow); }
+  .factor-edge.low { color: var(--muted); }
+
+  /* DISCLAIMER */
+  .disclaimer {
+    text-align: center;
+    font-size: 10px;
+    color: var(--muted);
+    padding: 0 8px 20px;
+    line-height: 1.6;
+    opacity: 0.7;
+  }
+
+  /* BOTTOM NAV */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(10, 13, 18, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0 max(10px, env(safe-area-inset-bottom));
+    z-index: 200;
+  }
+
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+    color: var(--muted);
+    transition: color 0.2s;
+    min-width: 50px;
+  }
+
+  .nav-item.active { color: var(--accent); }
+
+  .nav-icon { font-size: 20px; line-height: 1; }
+  .nav-label { font-size: 10px; font-weight: 600; font-family: 'Barlow Condensed', sans-serif; letter-spacing: 0.5px; }
+
+  /* ANIMATIONS */
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-in {
+    animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+
+  .animate-in:nth-child(1) { animation-delay: 0.05s; }
+  .animate-in:nth-child(2) { animation-delay: 0.1s; }
+  .animate-in:nth-child(3) { animation-delay: 0.15s; }
+  .animate-in:nth-child(4) { animation-delay: 0.2s; }
+  .animate-in:nth-child(5) { animation-delay: 0.25s; }
+  .animate-in:nth-child(6) { animation-delay: 0.3s; }
+
+  .spacer { height: 80px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="logo">AFL<span>Edge</span></div>
+    <div class="round-badge">ROUND 3 · 2025</div>
+  </div>
+
+  <div class="game-tabs">
+    <div class="game-tab active" onclick="loadGame('syd-car')">
+      <span>SYD</span><span>v</span><span>CAR</span>
+    </div>
+    <div class="game-tab" onclick="loadGame('gcs-gee')">
+      <div class="live-dot"></div>
+      <span>GCS</span><span>v</span><span>GEE</span>
+    </div>
+    <div class="game-tab" onclick="loadGame('gws-col')">
+      <span>GWS</span><span>v</span><span>COL</span>
+    </div>
+    <div class="game-tab" onclick="loadGame('other')">
+      <span>WBD</span><span>v</span><span>ESS</span>
+    </div>
+    <div class="game-tab" onclick="loadGame('other2')">
+      <span>RIC</span><span>v</span><span>HAW</span>
+    </div>
+  </div>
+</header>
+
+<main id="main-content">
+
+  <!-- MATCH HERO -->
+  <div class="match-hero animate-in">
+    <div class="match-header">
+      <div class="match-info">MCG · SAT 29 MAR</div>
+      <div class="match-time">7:25 PM AEDT</div>
+    </div>
+
+    <div class="teams-row">
+      <div class="team-block">
+        <div class="team-logo-wrap syd">SYD</div>
+        <div class="team-name">Sydney Swans</div>
+        <div class="team-form">
+          <div class="form-dot l">L</div>
+          <div class="form-dot w">W</div>
+          <div class="form-dot w">W</div>
+          <div class="form-dot l">L</div>
+          <div class="form-dot w">W</div>
+        </div>
+      </div>
+
+      <div class="vs-block">
+        <div class="vs-text">VS</div>
+        <div class="venue-text">Marvel Stadium</div>
+      </div>
+
+      <div class="team-block">
+        <div class="team-logo-wrap car">CAR</div>
+        <div class="team-name">Carlton</div>
+        <div class="team-form">
+          <div class="form-dot l">L</div>
+          <div class="form-dot l">L</div>
+          <div class="form-dot l">L</div>
+          <div class="form-dot w">W</div>
+          <div class="form-dot w">W</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WIN PROBABILITY -->
+    <div class="prob-section">
+      <div class="prob-label">
+        <span>SYD WIN PROB</span>
+        <span>CAR WIN PROB</span>
+      </div>
+      <div class="prob-bar">
+        <div class="prob-fill" id="prob-fill" style="width: 73%"></div>
+      </div>
+      <div class="prob-numbers">
+        <div class="prob-pct">73%</div>
+        <div class="prob-pct away">27%</div>
+      </div>
+    </div>
+
+    <!-- PREDICTED SCORE -->
+    <div class="pred-score">
+      <div>
+        <div class="pred-score-label">Predicted Score</div>
+        <div style="margin-top:4px"><span class="confidence-chip">HIGH CONF</span></div>
+      </div>
+      <div class="pred-score-values">
+        <div class="pred-score-team">
+          <div class="pred-score-num">98</div>
+          <div class="pred-score-team-name">SYD</div>
+        </div>
+        <div class="pred-score-dash">—</div>
+        <div class="pred-score-team">
+          <div class="pred-score-num" style="color: var(--muted)">76</div>
+          <div class="pred-score-team-name">CAR</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI INSIGHT -->
+  <div class="insight-card animate-in">
+    <div class="insight-icon">💡</div>
+    <div>
+      <div class="insight-title">AI MATCH INSIGHT</div>
+      <div class="insight-text">Sydney have won 7 of their last 9 games at Marvel Stadium. Carlton are 1–4 in their past 5 away games. Sydney's midfield is averaging +8.2 more clearances per game in 2025 — a strong indicator of scoring dominance.</div>
+    </div>
+  </div>
+
+  <!-- KEY FACTORS -->
+  <div class="market-card animate-in">
+    <div class="market-title">Key Factors</div>
+
+    <div class="factor-row">
+      <div class="factor-name">Clearance Differential</div>
+      <div class="factor-teams">
+        <span class="factor-team win">SYD +8.2</span>
+      </div>
+      <div class="factor-edge high">HIGH</div>
+    </div>
+
+    <div class="factor-row">
+      <div class="factor-name">Interstate Travel</div>
+      <div class="factor-teams">
+        <span class="factor-team lose">CAR away</span>
+      </div>
+      <div class="factor-edge mid">MED</div>
+    </div>
+
+    <div class="factor-row">
+      <div class="factor-name">Head-to-Head (last 10)</div>
+      <div class="factor-teams">
+        <span class="factor-team win">SYD 7–3</span>
+      </div>
+      <div class="factor-edge high">HIGH</div>
+    </div>
+
+    <div class="factor-row">
+      <div class="factor-name">Venue Record (SYD)</div>
+      <div class="factor-teams">
+        <span class="factor-team win">7W / 2L</span>
+      </div>
+      <div class="factor-edge high">HIGH</div>
+    </div>
+
+    <div class="factor-row">
+      <div class="factor-name">Injury Impact</div>
+      <div class="factor-teams">
+        <span class="factor-team draw">1 key out ea.</span>
+      </div>
+      <div class="factor-edge low">LOW</div>
+    </div>
+  </div>
+
+  <!-- HEAD TO HEAD MARKETS -->
+  <div>
+    <div class="section-header animate-in">
+      <div>
+        <div class="section-title">Head to Head</div>
+        <div class="section-sub">Best value picks based on predicted margin</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="market-card animate-in">
+    <div class="market-title">Match Result</div>
+
+    <div class="market-row recommended">
+      <div class="market-team-logo syd team-logo-wrap">SYD</div>
+      <div>
+        <div class="market-bet-name">Sydney Swans</div>
+        <div class="market-bet-sub">Predicted win by 22pts · 73% confidence</div>
+      </div>
+      <div class="rec-badge">⭐ PICK</div>
+      <div class="market-odds">1.35</div>
+    </div>
+
+    <div class="market-row">
+      <div class="market-team-logo car team-logo-wrap">CAR</div>
+      <div>
+        <div class="market-bet-name">Carlton</div>
+        <div class="market-bet-sub">Strong away game needed</div>
+      </div>
+      <div class="market-odds">3.21</div>
+    </div>
+  </div>
+
+  <div class="market-card animate-in">
+    <div class="market-title">Line Market</div>
+
+    <div class="market-row recommended">
+      <div class="market-team-logo syd team-logo-wrap">SYD</div>
+      <div>
+        <div class="market-bet-name">Sydney Swans (−20.5)</div>
+        <div class="market-bet-sub">Predicted margin: 22pts · good value</div>
+      </div>
+      <div class="rec-badge">VALUE</div>
+      <div class="market-odds">1.89</div>
+    </div>
+
+    <div class="market-row">
+      <div class="market-team-logo car team-logo-wrap">CAR</div>
+      <div>
+        <div class="market-bet-name">Carlton (+20.5)</div>
+        <div class="market-bet-sub">Risky — form suggests they won't cover</div>
+      </div>
+      <div class="market-odds">1.91</div>
+    </div>
+  </div>
+
+  <div class="market-card animate-in">
+    <div class="market-title">Big Win / Little Win</div>
+
+    <div class="market-row recommended">
+      <div class="market-team-logo syd team-logo-wrap">SYD</div>
+      <div>
+        <div class="market-bet-name">Sydney 40+</div>
+        <div class="market-bet-sub">Avg winning margin vs CAR: 34pts</div>
+      </div>
+      <div class="rec-badge">VALUE</div>
+      <div class="market-odds">2.95</div>
+    </div>
+
+    <div class="market-row">
+      <div class="market-team-logo syd team-logo-wrap">SYD</div>
+      <div>
+        <div class="market-bet-name">Sydney 1 to 39</div>
+        <div class="market-bet-sub">Possible but not the trend</div>
+      </div>
+      <div class="market-odds">2.25</div>
+    </div>
+
+    <div class="market-row">
+      <div class="market-team-logo car team-logo-wrap">CAR</div>
+      <div>
+        <div class="market-bet-name">Carlton 1 to 39</div>
+        <div class="market-bet-sub">Unlikely based on current form</div>
+      </div>
+      <div class="market-odds">3.75</div>
+    </div>
+  </div>
+
+  <!-- PLAYER PROPS -->
+  <div>
+    <div class="section-header animate-in">
+      <div>
+        <div class="section-title">Player Prop Predictions</div>
+        <div class="section-sub">Disposals, Goals, Tackles & Marks</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DISPOSALS -->
+  <div class="market-card animate-in">
+    <div class="market-title">Disposals</div>
+
+    <div class="player-prop-row">
+      <div class="player-avatar">CW</div>
+      <div class="player-info">
+        <div class="player-name">Callum Ward</div>
+        <div class="player-team-pos">SYD · Midfielder</div>
+        <div class="stat-bar-wrap" style="width:100px">
+          <div class="stat-bar-fill" style="width:82%"></div>
+        </div>
+      </div>
+      <div class="player-stat-block">
+        <div class="player-prediction">31 disp</div>
+        <div class="player-avg">Avg 28.4 · Last 5</div>
+        <span class="confidence-chip" style="font-size:9px; padding:2px 6px; margin-top:2px">HIGH</span>
+      </div>
+    </div>
+
+    <div class="player-prop-row">
+      <div class="player-avatar">LM</div>
+      <div class="player-info">
+        <div class="player-name">Luke Meagher</div>
+        <div class="player-team-pos">CAR · Midfielder</div>
+        <div class="stat-bar-wrap" style="width:100px">
+          <div class="stat-bar-fill" style="width:60%; background: var(--yellow)"></div>
+        </div>
+      </div>
+      <div class="player-stat-block">
+        <div class="player-prediction">24 disp</div>
+        <div class="player-avg">Avg 26.1 · Last 5</div>
+        <span class="confidence-chip medium" style="font-size:9px; padding:2px 6px; margin-top:2px">MED</span>
+      </div>
+    </div>
+
+    <div class="player-prop-row">
+      <div class="player-avatar">IH</div>
+      <div class="player-info">
+        <div class="player-name">Isaac Heeney</div>
+        <div class="player-team-pos">SYD · Forward/Mid</div>
+        <div class="stat-bar-wrap" style="width:100px">
+          <div class="stat-bar-fill" style="width:75%"></div>
+        </div>
+      </div>
+      <div class="player-stat-block">
+        <div class="player-prediction">27 disp</div>
+        <div class="player-avg">Avg 25.8 · Last 5</div>
+        <span class="confidence-chip" style="font-size:9px; padding:2px 6px; margin-top:2px">HIGH</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- GOALS -->
+  <div class="market-card animate-in">
+    <div class="market-title">Goals — Anytime Scorer</div>
+
+    <div class="player-prop-row">
+      <div class="player-avatar">LF</div>
+      <div class="player-info">
+        <div class="player-name">Logan McDonald</div>
+        <div class="player-team-pos">SYD · Forward</div>
+        <div class="stat-bar-wrap" style="width:100px">
+          <div class="stat-bar-fill" style="width:88%"></div>
+        </div>
+      </div>
+      <div class="player-stat-block">
+        <div class="player-prediction">2.3 avg</div>
+        <div class="player-avg">Anytime scorer</div>
+        <span class="confidence-chip" style="font-size:9px; padding:2px 6px; margin-top:2px">HIGH</span>
+      </div>
+    </div>
+
+    <div class="player-prop-row">
+      <div class="player-avatar">CH</div>
+      <div class="player-info">
+        <div class="player-name">Charlie Curnow</div>
+        <div class="player-team-pos">CAR · Forward</div>
+        <div class="stat-bar-wrap" style="width:100px">
+          <div class="stat-bar-fill" style="width:55%; background: var(--yellow)"></div>
+        </div>
+      </div>
+      <div class="player-stat-block">
+        <div class="player-prediction">1.4 avg</div>
+        <div class="player-avg">Form dipping</div>
+        <span class="confidence-chip medium" style="font-size:9px; padding:2px 6px; margin-top:2px">MED</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TACKLES -->
+  <div class="market-card animate-in">
+    <div class="market-title">Tackles</div>
+
+    <div class="player-prop-row">
+      <div class="player-avatar">EF</div>
+      <div class="player-info">
+        <div class="player-name">Errol Gulden</div>
+        <div class="player-team-pos">SYD · Midfielder</div>
+        <div class="stat-bar-wrap" style="width:100px">
+          <div class="stat-bar-fill" style="width:70%"></div>
+        </div>
+      </div>
+      <div class="player-stat-block">
+        <div class="player-prediction">6+ tkl</div>
+        <div class="player-avg">Avg 5.8 · Last 5</div>
+        <span class="confidence-chip" style="font-size:9px; padding:2px 6px; margin-top:2px">HIGH</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+  <div class="disclaimer">AFL Edge uses historical data and statistical modelling to generate predictions. This is not financial advice. Please gamble responsibly. 1800 858 858.</div>
+
+</main>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <div class="nav-item active">
+    <div class="nav-icon">🏉</div>
+    <div class="nav-label">Matches</div>
+  </div>
+  <div class="nav-item">
+    <div class="nav-icon">👤</div>
+    <div class="nav-label">Players</div>
+  </div>
+  <div class="nav-item">
+    <div class="nav-icon">📊</div>
+    <div class="nav-label">Stats</div>
+  </div>
+  <div class="nav-item">
+    <div class="nav-icon">⭐</div>
+    <div class="nav-label">Picks</div>
+  </div>
+  <div class="nav-item">
+    <div class="nav-icon">⚙️</div>
+    <div class="nav-label">Settings</div>
+  </div>
+</div>
+
+<script>
+  // Animate probability bar on load
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      document.getElementById('prob-fill').style.width = '73%';
+    }, 300);
+  });
+
+  // Tab switching (skeleton — would load real data from API)
+  function loadGame(gameId) {
+    document.querySelectorAll('.game-tab').forEach(t => t.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+
+    // In real version: fetch from Champion Data API, re-render predictions
+    const games = {
+      'syd-car': { home: 'SYD', away: 'CAR', prob: 73, predHome: 98, predAway: 76 },
+      'gcs-gee': { home: 'GCS', away: 'GEE', prob: 44, predHome: 82, predAway: 89 },
+      'gws-col': { home: 'GWS', away: 'COL', prob: 52, predHome: 88, predAway: 85 },
+    };
+  }
+</script>
+</body>
+</html>
 
