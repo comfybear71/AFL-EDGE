@@ -1525,7 +1525,8 @@
         LIVE
       </div>
       <select class="season-select" id="season-select" onchange="changeSeason(this.value)">
-        <option value="2025">2025</option>
+        <option value="2026">2026</option>
+        <option value="2025" selected>2025</option>
         <option value="2024">2024</option>
         <option value="2023">2023</option>
       </select>
@@ -1876,13 +1877,32 @@ async function loadSeason(year = null, round = null) {
     if (year) { upParams.set('year', year); ladParams.set('year', year); }
     if (round) upParams.set('round', round);
 
-    // Fetch matches + ladder in parallel
-    const [upRes, ladRes] = await Promise.all([
-      fetch(`${API}/upcoming?${upParams}`).then(r => r.json()).catch(() => null),
-      fetch(`${API}/ladder?${ladParams}`).then(r => r.json()).catch(() => null),
+    // Fetch matches + ladder in parallel — with proper error capture
+    const [upResult, ladResult] = await Promise.all([
+      fetch(`${API}/upcoming?${upParams}`)
+        .then(async r => {
+          if (!r.ok) throw new Error(`Upcoming API: ${r.status} ${r.statusText}`);
+          return { ok: true, data: await r.json() };
+        })
+        .catch(e => ({ ok: false, error: e.message })),
+      fetch(`${API}/ladder?${ladParams}`)
+        .then(async r => {
+          if (!r.ok) throw new Error(`Ladder API: ${r.status} ${r.statusText}`);
+          return { ok: true, data: await r.json() };
+        })
+        .catch(e => ({ ok: false, error: e.message })),
     ]);
 
+    // If both APIs failed, show error with details
+    if (!upResult.ok && !ladResult.ok) {
+      renderOfflineState(`API Error: ${upResult.error}`);
+      return;
+    }
+
     // Track which year/round the API resolved to
+    const upRes = upResult.ok ? upResult.data : null;
+    const ladRes = ladResult.ok ? ladResult.data : null;
+
     if (upRes) {
       currentYear = upRes.year;
       currentRound = upRes.round;
@@ -1916,8 +1936,8 @@ async function loadSeason(year = null, round = null) {
     resetStatsView();
 
   } catch (e) {
-    console.warn('API not available — showing offline state:', e);
-    renderOfflineState();
+    console.warn('API not available:', e);
+    renderOfflineState(e.message || 'Unknown error');
   }
 }
 
@@ -2549,8 +2569,9 @@ async function loadStats() {
 }
 
 // ─── Offline / Fallback State ────────────────────────────────────────────────
-function renderOfflineState() {
-  document.getElementById('hero-sub').textContent = 'Offline — connect to Vercel to see live data';
+function renderOfflineState(errorMsg) {
+  const detail = errorMsg || 'Could not connect to API';
+  document.getElementById('hero-sub').textContent = detail;
   document.getElementById('stat-round').textContent = '--';
   document.getElementById('stat-games').textContent = '--';
   document.getElementById('stat-upcoming').textContent = '--';
@@ -2559,8 +2580,9 @@ function renderOfflineState() {
 
   document.getElementById('ladder-snapshot-body').innerHTML = `
     <div class="empty-state" style="padding:20px">
-      <div class="empty-state-text">Deploy to Vercel to connect</div>
-      <div class="empty-state-sub">The Squiggle API provides all data for free — no key needed</div>
+      <div class="empty-state-text">Data Unavailable</div>
+      <div class="empty-state-sub" style="word-break:break-word">${detail}</div>
+      <div class="empty-state-sub" style="margin-top:8px;opacity:0.6">Try <a href="/api/debug" style="color:var(--accent)" target="_blank">/api/debug</a> to test API connectivity</div>
     </div>`;
 }
 
@@ -2570,7 +2592,9 @@ setInterval(async () => {
     const params = new URLSearchParams();
     if (currentYear) params.set('year', currentYear);
     if (currentRound) params.set('round', currentRound);
-    const res = await fetch(`${API}/upcoming?${params}`).then(r => r.json()).catch(() => null);
+    const r = await fetch(`${API}/upcoming?${params}`);
+    if (!r.ok) return;
+    const res = await r.json();
     if (res && res.matches) {
       upcomingMatches = res.matches;
       const liveGames = res.matches.filter(m => m.complete > 0 && m.complete < 100);
@@ -2581,7 +2605,7 @@ setInterval(async () => {
         renderScoresTicker(res.matches);
       }
     }
-  } catch (e) { /* silent */ }
+  } catch (e) { /* silent refresh failure — ok */ }
 }, 60000);
 </script>
 </body>
