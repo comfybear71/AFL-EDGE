@@ -1,121 +1,116 @@
 /**
- * GET /api/predict?matchId=216085122
- * Returns full prediction for a given match.
+ * GET /api/predict?matchId=xxx
+ * Full prediction for a match using Squiggle data.
  * 
- * Query params:
- *   matchId  (required) — from the fixture data
+ * Also blends in Squiggle's own model tips as a "wisdom of the crowd" 
+ * cross-check against our engine's output.
  */
-const api    = require('../champion-data');
-const engine = require('../predictor');
+const squiggle = require('../squiggle');
+const engine   = require('../predictor');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
 
   const matchId = parseInt(req.query.matchId);
   if (!matchId) {
-    return res.status(400).json({ error: 'matchId query param required. e.g. /api/predict?matchId=216085122' });
+    return res.status(400).json({ error: 'matchId is required. e.g. /api/predict?matchId=123' });
   }
 
   try {
-    // ── 1. Get season & fixture ──────────────────────────────────────────────
-    const seasons  = await api.getSeasons();
-    const seasonId = seasons?.seasons?.[seasons.seasons.length - 1]?.id
-      || new Date().getFullYear();
+    const year = new Date().getFullYear();
 
-    const [match, venue, fixture] = await Promise.all([
-      api.getMatch(matchId),
-      api.getMatchVenue(matchId),
-      api.getFixture(seasonId),
+    // ── 1. Load all data in parallel ─────────────────────────────────────────
+    const [allGames, standings] = await Promise.all([
+      squiggle.getGames(year),
+      squiggle.getStandings(year),
     ]);
 
-    // Flatten all matches from the fixture
-    const allMatches = [];
-    for (const phase of fixture.phases || []) {
-      for (const round of phase.rounds || []) {
-        allMatches.push(...(round.matches || []));
-      }
+    // Find the specific match
+    const match = allGames.find(g => g.id === matchId);
+    if (!match) {
+      return res.status(404).json({ error: `Match ${matchId} not found in ${year} fixture` });
     }
 
-    const homeId = match.home?.id;
-    const awayId = match.away?.id;
+    const hteam = match.hteam;
+    const ateam = match.ateam;
 
-    // ── 2. Build team stats (last 6 completed games) ─────────────────────────
-    const [homeStats, awayStats] = await Promise.all([
-      api.buildTeamStats(homeId, seasonId, allMatches, 6),
-      api.buildTeamStats(awayId, seasonId, allMatches, 6),
-    ]);
+    // ── 2. Build team stats from historical games ─────────────────────────────
+    const homeStats = squiggle.buildTeamStats(hteam, year, allGames, standings, 6);
+    const awayStats = squiggle.buildTeamStats(ateam, year, allGames, standings, 6);
 
     if (!homeStats || !awayStats) {
       return res.status(422).json({
-        error: 'Not enough match history yet to generate a prediction',
-        hint: 'This usually happens early in the season (round 1-2)',
+        error: 'Not enough match history yet — try again after Round 2',
       });
     }
 
-    // ── 3. Head to head ──────────────────────────────────────────────────────
-    const h2hMatches = allMatches.filter(m => {
-      const ids = [m.squads?.home?.id, m.squads?.away?.id];
-      return ids.includes(homeId) && ids.includes(awayId)
-        && m.status?.typeName === 'Completed';
-    });
+    // ── 3. Head to head ───────────────────────────────────────────────────────
+    // Pull last 3 years of H2H data for a better sample
+    let h2hGames = [];
+    for (let y = year; y >= year - 3; y--) {
+      try {
+        const yearGames = await squiggle.getCompleted(y);
+        h2hGames.push(...yearGames);
+      } catch { /* skip years with no data */ }
+    }
+    h2hGames = h2hGames.slice(-10); // last 10 meetings
 
-    homeStats.h2hWins   = h2hMatches.filter(m => {
-      const isHome = m.squads?.home?.id === homeId;
-      return isHome
-        ? m.squads.home.score.points > m.squads.away.score.points
-        : m.squads.away.score.points > m.squads.home.score.points;
-    }).length;
-    homeStats.h2hPlayed = h2hMatches.length;
-    awayStats.h2hWins   = h2hMatches.length - homeStats.h2hWins;
-    awayStats.h2hPlayed = h2hMatches.length;
+    const homeH2H = squiggle.calcH2H(hteam, ateam, h2hGames);
+    const awayH2H = squiggle.calcH2H(ateam, hteam, h2hGames);
+    homeStats.h2hWins   = homeH2H.wins;
+    homeStats.h2hPlayed = homeH2H.played;
+    awayStats.h2hWins   = awayH2H.wins;
+    awayStats.h2hPlayed = awayH2H.played;
 
-    // ── 4. Venue record ──────────────────────────────────────────────────────
-    const venueMatches = allMatches.filter(m =>
-      m.venue?.id === venue.id && m.status?.typeName === 'Completed'
-    );
-
-    const calcVenueRecord = (squadId) => {
-      const squadVenueMatches = venueMatches.filter(m =>
-        m.squads?.home?.id === squadId || m.squads?.away?.id === squadId
-      );
-      const wins = squadVenueMatches.filter(m => {
-        const isHome = m.squads?.home?.id === squadId;
-        return isHome
-          ? m.squads.home.score.points > m.squads.away.score.points
-          : m.squads.away.score.points > m.squads.home.score.points;
-      }).length;
-      return { wins, played: squadVenueMatches.length };
-    };
-
-    const homeVenue = calcVenueRecord(homeId);
-    const awayVenue = calcVenueRecord(awayId);
+    // ── 4. Venue record ───────────────────────────────────────────────────────
+    const homeVenue = squiggle.calcVenueRecord(hteam, match.venue, h2hGames.concat(allGames));
+    const awayVenue = squiggle.calcVenueRecord(ateam, match.venue, h2hGames.concat(allGames));
     homeStats.venueWins   = homeVenue.wins;
     homeStats.venuePlayed = homeVenue.played;
     awayStats.venueWins   = awayVenue.wins;
     awayStats.venuePlayed = awayVenue.played;
 
-    // ── 5. Travel flags ──────────────────────────────────────────────────────
-    homeStats.travellingInterstate = venue.home?.interstateTravel || false;
-    awayStats.travellingInterstate = venue.away?.interstateTravel || false;
+    // Interstate travel — simple heuristic from team name vs venue state
+    homeStats.travellingInterstate = isInterstate(hteam, match.venue);
+    awayStats.travellingInterstate = isInterstate(ateam, match.venue);
 
-    // ── 6. Team names ────────────────────────────────────────────────────────
-    homeStats.name = match.home?.name;
-    homeStats.code = match.home?.code;
-    awayStats.name = match.away?.name;
-    awayStats.code = match.away?.code;
-
-    // ── 7. Run prediction engine ─────────────────────────────────────────────
+    // ── 5. Run our prediction engine ──────────────────────────────────────────
     const prediction = engine.predictMatch(homeStats, awayStats, {
-      id: venue.id, name: venue.name, code: venue.code,
+      name: match.venue,
+      code: match.venue?.substring(0, 4).toUpperCase(),
     });
 
-    // ── 8. Line assessment ───────────────────────────────────────────────────
+    // ── 6. Cross-check with Squiggle model tips ───────────────────────────────
+    const aggregateTip  = await squiggle.getAggregateTip(year, match.round, hteam, ateam);
+    const allModelTips  = await squiggle.getAllTipsForMatch(year, match.round, hteam, ateam);
+
+    // Squiggle hconfidence = % chance home team wins (0-100)
+    const squiggleHomeProb = aggregateTip?.hconfidence || null;
+    const modelConsensus   = allModelTips.length > 0
+      ? Math.round(allModelTips.reduce((s, t) => s + (t.hconfidence || 50), 0) / allModelTips.length)
+      : null;
+
+    // ── 7. Blend: 70% our engine, 30% Squiggle aggregate ─────────────────────
+    let finalHomeProb = prediction.home.winProbability;
+    if (squiggleHomeProb !== null) {
+      finalHomeProb = parseFloat(
+        (finalHomeProb * 0.70 + squiggleHomeProb * 0.30).toFixed(1)
+      );
+    }
+    const finalAwayProb = parseFloat((100 - finalHomeProb).toFixed(1));
+
+    // Update prediction with blended probability
+    prediction.home.winProbability = finalHomeProb;
+    prediction.away.winProbability = finalAwayProb;
+    prediction.predictedWinner     = finalHomeProb >= 50 ? homeStats.code : awayStats.code;
+
+    // Line assessment
     const margin = prediction.predictedMargin;
     prediction.lineAssessment = {
       predictedWinner: prediction.predictedWinner,
       predictedMargin: margin,
       recommendation: margin > 25
-        ? `Strong lean to ${prediction.predictedWinner} — consider handicap`
+        ? `Strong lean to ${prediction.predictedWinner} — consider handicap bet`
         : margin > 12
         ? `Moderate lean to ${prediction.predictedWinner} — check the line`
         : 'Close game — line bet is risky',
@@ -124,12 +119,22 @@ module.exports = async (req, res) => {
     res.json({
       matchId,
       match: {
-        name:   match.name,
-        date:   match.date,
-        venue:  { name: venue.name, code: venue.code },
-        status: match.status,
+        name:      `${hteam} v ${ateam}`,
+        hteam,
+        ateam,
+        round:     match.round,
+        roundName: match.roundname,
+        date:      match.date,
+        venue:     match.venue,
       },
       prediction,
+      squiggle: {
+        aggregateHomeWinPct: squiggleHomeProb,
+        modelConsensusHomeWinPct: modelConsensus,
+        modelCount: allModelTips.length,
+        tip: aggregateTip?.tip || null,
+        margin: aggregateTip?.margin || null,
+      },
     });
 
   } catch (err) {
@@ -137,3 +142,37 @@ module.exports = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+// Very rough interstate travel check based on team home state vs venue
+const HOME_STATES = {
+  'Adelaide':      'SA',  'Port Adelaide':  'SA',
+  'Melbourne':     'VIC', 'Collingwood':    'VIC',
+  'Carlton':       'VIC', 'Essendon':       'VIC',
+  'Hawthorn':      'VIC', 'Richmond':       'VIC',
+  'St Kilda':      'VIC', 'Western Bulldogs':'VIC',
+  'North Melbourne':'VIC','Geelong':         'VIC',
+  'Sydney':        'NSW', 'GWS Giants':      'NSW',
+  'Brisbane Lions':'QLD', 'Gold Coast':      'QLD',
+  'West Coast':    'WA',  'Fremantle':       'WA',
+};
+
+const VENUE_STATES = {
+  'MCG': 'VIC', 'Marvel Stadium': 'VIC', 'Ikon Park': 'VIC',
+  'GMHBA Stadium': 'VIC', 'Adelaide Oval': 'SA',
+  'SCG': 'NSW', 'Engie Stadium': 'NSW', 'GIANTS Stadium': 'NSW',
+  'Gabba': 'QLD', 'Heritage Bank Stadium': 'QLD', 'People First Stadium': 'QLD',
+  'Optus Stadium': 'WA', 'Subiaco': 'WA',
+  'Mars Stadium': 'VIC', 'Blundstone Arena': 'TAS',
+  'TIO Stadium': 'NT', 'TIO Traeger Park': 'NT',
+  'Norwood Oval': 'SA',
+};
+
+function isInterstate(teamName, venue) {
+  const teamState  = HOME_STATES[teamName];
+  const venueState = Object.entries(VENUE_STATES).find(([v]) =>
+    venue?.toLowerCase().includes(v.toLowerCase())
+  )?.[1];
+  if (!teamState || !venueState) return false;
+  return teamState !== venueState;
+}

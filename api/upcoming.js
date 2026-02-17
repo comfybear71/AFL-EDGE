@@ -1,30 +1,35 @@
 /**
  * GET /api/upcoming
- * Returns all upcoming matches for the current round.
+ * Returns this round's upcoming matches from Squiggle.
+ * No API token needed.
  */
-const api = require('../champion-data');
+const squiggle = require('../squiggle');
 
 module.exports = async (req, res) => {
-  // CORS headers so the frontend can call this
   res.setHeader('Access-Control-Allow-Origin', '*');
 
   try {
-    const seasons = await api.getSeasons();
-    const seasonId = seasons?.seasons?.[seasons.seasons.length - 1]?.id
-      || new Date().getFullYear();
+    const year     = new Date().getFullYear();
+    const upcoming = await squiggle.getUpcoming(year);
 
-    const matches = await api.getUpcomingMatches(seasonId);
+    // Shape the data nicely for the frontend
+    const matches = upcoming.map(g => ({
+      id:         g.id,
+      round:      g.round,
+      roundName:  g.roundname,
+      date:       g.date,
+      venue:      g.venue,
+      hteam:      g.hteam,
+      ateam:      g.ateam,
+      hteamid:    g.hteamid,
+      ateamid:    g.ateamid,
+      timezone:   g.tz,
+    }));
 
-    res.json({ seasonId, count: matches.length, matches });
+    res.json({ year, count: matches.length, matches });
 
   } catch (err) {
     console.error('[upcoming]', err.message);
-    res.status(500).json({
-      error: err.message,
-      hint: err.message.includes('AFL_API_TOKEN')
-        ? 'Add AFL_API_TOKEN in Vercel → Settings → Environment Variables'
-        : 'Check Vercel function logs for details',
-    });
+    res.status(500).json({ error: err.message });
   }
 };
-
