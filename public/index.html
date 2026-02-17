@@ -1401,6 +1401,283 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════════════════
+     COMPARE VIEW
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .compare-selectors {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 16px;
+    margin-bottom: 12px;
+  }
+
+  .compare-team-pick {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .compare-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .compare-select {
+    background: var(--card);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235a6478'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 30px;
+    transition: border-color 0.2s;
+  }
+
+  .compare-select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .compare-select option {
+    background: var(--card);
+    color: var(--text);
+  }
+
+  .compare-vs {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 18px;
+    color: var(--muted);
+    padding-top: 16px;
+    flex-shrink: 0;
+  }
+
+  .compare-btn {
+    display: block;
+    width: calc(100% - 32px);
+    margin: 0 16px 16px;
+    padding: 12px;
+    background: linear-gradient(135deg, var(--accent), #0090cc);
+    color: #000;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: 0.5px;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+  }
+
+  .compare-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+  .compare-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* Probability bar */
+  .compare-prob-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .compare-prob-label-left,
+  .compare-prob-label-right {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 14px;
+    min-width: 36px;
+    flex-shrink: 0;
+  }
+
+  .compare-prob-label-left { color: var(--accent); text-align: right; }
+  .compare-prob-label-right { color: var(--accent2); text-align: left; }
+
+  .compare-prob-bar {
+    flex: 1;
+    height: 32px;
+    background: var(--accent2);
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .compare-prob-fill {
+    height: 100%;
+    background: linear-gradient(135deg, var(--accent), #0090cc);
+    border-radius: 16px;
+    transition: width 0.6s ease;
+  }
+
+  .compare-prob-pcts {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 22px;
+  }
+
+  .compare-prob-pcts span:first-child { color: var(--accent); }
+  .compare-prob-pcts span:last-child { color: var(--accent2); }
+
+  /* Stat comparison rows */
+  .compare-stat-row {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(26,35,50,0.5);
+  }
+
+  .compare-stat-row:last-child { border-bottom: none; }
+
+  .compare-stat-val {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 17px;
+    min-width: 50px;
+    flex-shrink: 0;
+  }
+
+  .compare-stat-val.left { text-align: right; color: var(--accent); }
+  .compare-stat-val.right { text-align: left; color: var(--accent2); }
+  .compare-stat-val.better { opacity: 1; }
+  .compare-stat-val.worse { opacity: 0.45; }
+
+  .compare-stat-name {
+    flex: 1;
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .compare-stat-bar-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .compare-stat-bar-left,
+  .compare-stat-bar-right {
+    height: 6px;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  .compare-stat-bar-left { background: var(--accent); margin-left: auto; }
+  .compare-stat-bar-right { background: var(--accent2); }
+
+  /* Form dots */
+  .compare-form-wrap {
+    padding: 8px 14px;
+  }
+
+  .compare-form-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+  }
+
+  .compare-form-team {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--text-secondary);
+    min-width: 36px;
+  }
+
+  .compare-form-dots {
+    display: flex;
+    gap: 6px;
+  }
+
+  .form-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 12px;
+  }
+
+  .form-dot.W { background: var(--green-dim); color: var(--green); }
+  .form-dot.L { background: var(--red-dim); color: var(--red); }
+  .form-dot.D { background: var(--yellow-dim); color: var(--yellow); }
+
+  /* H2H */
+  .compare-h2h-summary {
+    padding: 14px;
+    text-align: center;
+  }
+
+  .compare-h2h-big {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 28px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .compare-h2h-sub {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* Recent matchup rows */
+  .compare-matchup-row {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(26,35,50,0.5);
+    gap: 10px;
+  }
+
+  .compare-matchup-row:last-child { border-bottom: none; }
+
+  .compare-matchup-teams {
+    flex: 1;
+    font-weight: 600;
+    font-size: 13px;
+  }
+
+  .compare-matchup-score {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--text);
+    flex-shrink: 0;
+  }
+
+  .compare-matchup-meta {
+    font-size: 11px;
+    color: var(--muted);
+    flex-shrink: 0;
+    text-align: right;
+    min-width: 50px;
+  }
+
+  .compare-matchup-winner { color: var(--green); }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
      LOADING & EMPTY STATES
      ═══════════════════════════════════════════════════════════════════════════ */
   .loading-state {
@@ -1568,6 +1845,7 @@
     <div class="nav-tab" data-view="matches">Matches</div>
     <div class="nav-tab" data-view="ladder">Ladder</div>
     <div class="nav-tab" data-view="stats">Stats</div>
+    <div class="nav-tab" data-view="compare">Compare</div>
   </div>
 </header>
 
@@ -1842,6 +2120,91 @@
 
   <div class="disclaimer">
     Stats calculated from completed 2026 season games via Squiggle API.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     COMPARE VIEW
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<div class="view" id="view-compare">
+
+  <div class="section-label anim-in">Team Comparison</div>
+
+  <!-- Team Selectors -->
+  <div class="compare-selectors anim-in">
+    <div class="compare-team-pick">
+      <label class="compare-label">Team 1</label>
+      <select class="compare-select" id="compare-team1">
+        <option value="">Select team...</option>
+      </select>
+    </div>
+    <div class="compare-vs">VS</div>
+    <div class="compare-team-pick">
+      <label class="compare-label">Team 2</label>
+      <select class="compare-select" id="compare-team2">
+        <option value="">Select team...</option>
+      </select>
+    </div>
+  </div>
+
+  <button class="compare-btn" id="compare-btn" onclick="runComparison()" disabled>Compare Teams</button>
+
+  <!-- Results (hidden until comparison run) -->
+  <div id="compare-results" style="display:none">
+
+    <!-- Win Probability Gauge -->
+    <div class="card anim-in" id="compare-prob-card">
+      <div class="card-title">Win Probability</div>
+      <div class="compare-prob-bar-wrap">
+        <div class="compare-prob-label-left" id="cmp-prob-name1"></div>
+        <div class="compare-prob-bar">
+          <div class="compare-prob-fill" id="cmp-prob-fill1"></div>
+        </div>
+        <div class="compare-prob-label-right" id="cmp-prob-name2"></div>
+      </div>
+      <div class="compare-prob-pcts">
+        <span id="cmp-prob-pct1"></span>
+        <span id="cmp-prob-pct2"></span>
+      </div>
+    </div>
+
+    <!-- Side by Side Stats -->
+    <div class="card anim-in">
+      <div class="card-title">Season Stats</div>
+      <div id="compare-stats-rows"></div>
+    </div>
+
+    <!-- Form -->
+    <div class="card anim-in">
+      <div class="card-title">Recent Form (Last 6)</div>
+      <div class="compare-form-wrap">
+        <div class="compare-form-row">
+          <span class="compare-form-team" id="cmp-form-name1"></span>
+          <div class="compare-form-dots" id="cmp-form1"></div>
+        </div>
+        <div class="compare-form-row">
+          <span class="compare-form-team" id="cmp-form-name2"></span>
+          <div class="compare-form-dots" id="cmp-form2"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- H2H Record -->
+    <div class="card anim-in">
+      <div class="card-title">Head to Head</div>
+      <div id="compare-h2h"></div>
+    </div>
+
+    <!-- Recent Matchups -->
+    <div class="card anim-in">
+      <div class="card-title">Recent Matchups</div>
+      <div id="compare-matchups"></div>
+    </div>
+
+  </div>
+
+  <div class="disclaimer">
+    Comparison data from Squiggle API. Win probability is estimated from season stats, form, and head-to-head history.
   </div>
 </div>
 
@@ -2638,6 +3001,142 @@ function renderOfflineState(errorMsg) {
       <div class="empty-state-sub" style="word-break:break-word">${detail}</div>
       <div class="empty-state-sub" style="margin-top:8px;opacity:0.6">Try <a href="/api/debug" style="color:var(--accent)" target="_blank">/api/debug</a> to test API connectivity</div>
     </div>`;
+}
+
+// ─── Compare View ─────────────────────────────────────────────────────────────
+const AFL_TEAMS = [
+  'Adelaide','Brisbane Lions','Carlton','Collingwood','Essendon','Fremantle',
+  'Geelong','Gold Coast','GWS Giants','Hawthorn','Melbourne','North Melbourne',
+  'Port Adelaide','Richmond','St Kilda','Sydney','West Coast','Western Bulldogs'
+];
+
+// Populate compare dropdowns
+(function initCompareSelects() {
+  const s1 = document.getElementById('compare-team1');
+  const s2 = document.getElementById('compare-team2');
+  AFL_TEAMS.forEach(t => {
+    s1.innerHTML += `<option value="${t}">${t}</option>`;
+    s2.innerHTML += `<option value="${t}">${t}</option>`;
+  });
+  s1.addEventListener('change', validateCompare);
+  s2.addEventListener('change', validateCompare);
+})();
+
+function validateCompare() {
+  const t1 = document.getElementById('compare-team1').value;
+  const t2 = document.getElementById('compare-team2').value;
+  document.getElementById('compare-btn').disabled = !t1 || !t2 || t1 === t2;
+}
+
+async function runComparison() {
+  const t1 = document.getElementById('compare-team1').value;
+  const t2 = document.getElementById('compare-team2').value;
+  if (!t1 || !t2 || t1 === t2) return;
+
+  const btn = document.getElementById('compare-btn');
+  const results = document.getElementById('compare-results');
+  btn.disabled = true;
+  btn.textContent = 'Loading...';
+  results.style.display = 'none';
+
+  try {
+    const params = new URLSearchParams({ team1: t1, team2: t2 });
+    if (currentYear) params.set('year', currentYear);
+    const r = await fetch(`${API}/compare?${params}`);
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({ error: r.statusText }));
+      throw new Error(err.error || `API returned ${r.status}`);
+    }
+    const data = await r.json();
+    renderComparison(data);
+    results.style.display = 'block';
+  } catch (e) {
+    alert('Comparison failed: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Compare Teams';
+  }
+}
+
+function renderComparison(data) {
+  const a1 = abbrev(data.team1.name);
+  const a2 = abbrev(data.team2.name);
+
+  // Win probability
+  document.getElementById('cmp-prob-name1').textContent = a1;
+  document.getElementById('cmp-prob-name2').textContent = a2;
+  document.getElementById('cmp-prob-pct1').textContent = data.team1.winProbability + '%';
+  document.getElementById('cmp-prob-pct2').textContent = data.team2.winProbability + '%';
+  document.getElementById('cmp-prob-fill1').style.width = data.team1.winProbability + '%';
+
+  // Season stats rows
+  const stats = [
+    { label: 'Ladder Position', v1: ordinal(data.team1.rank), v2: ordinal(data.team2.rank), raw1: -data.team1.rank, raw2: -data.team2.rank },
+    { label: 'Wins - Losses', v1: `${data.team1.wins}-${data.team1.losses}`, v2: `${data.team2.wins}-${data.team2.losses}`, raw1: data.team1.wins, raw2: data.team2.wins },
+    { label: 'Percentage', v1: data.team1.percentage.toFixed(1) + '%', v2: data.team2.percentage.toFixed(1) + '%', raw1: data.team1.percentage, raw2: data.team2.percentage },
+    { label: 'Avg Score', v1: data.team1.avgScore.toFixed(1), v2: data.team2.avgScore.toFixed(1), raw1: data.team1.avgScore, raw2: data.team2.avgScore },
+    { label: 'Avg Conceded', v1: data.team1.avgConceded.toFixed(1), v2: data.team2.avgConceded.toFixed(1), raw1: -data.team1.avgConceded, raw2: -data.team2.avgConceded },
+    { label: 'Scoring Margin', v1: (data.team1.scoringMargin >= 0 ? '+' : '') + data.team1.scoringMargin.toFixed(1), v2: (data.team2.scoringMargin >= 0 ? '+' : '') + data.team2.scoringMargin.toFixed(1), raw1: data.team1.scoringMargin, raw2: data.team2.scoringMargin },
+  ];
+
+  document.getElementById('compare-stats-rows').innerHTML = stats.map(s => {
+    const c1 = s.raw1 >= s.raw2 ? 'better' : 'worse';
+    const c2 = s.raw2 >= s.raw1 ? 'better' : 'worse';
+    return `<div class="compare-stat-row">
+      <div class="compare-stat-val left ${c1}">${s.v1}</div>
+      <div class="compare-stat-name">${s.label}</div>
+      <div class="compare-stat-val right ${c2}">${s.v2}</div>
+    </div>`;
+  }).join('');
+
+  // Form
+  document.getElementById('cmp-form-name1').textContent = a1;
+  document.getElementById('cmp-form-name2').textContent = a2;
+  document.getElementById('cmp-form1').innerHTML = (data.team1.form || []).map(f =>
+    `<div class="form-dot ${f}">${f}</div>`
+  ).join('');
+  document.getElementById('cmp-form2').innerHTML = (data.team2.form || []).map(f =>
+    `<div class="form-dot ${f}">${f}</div>`
+  ).join('');
+
+  // H2H
+  const h = data.h2h;
+  const draws = h.historical.played - h.historical.team1Wins - h.historical.team2Wins;
+  document.getElementById('compare-h2h').innerHTML = `
+    <div class="compare-h2h-summary">
+      <div class="compare-h2h-big">${h.historical.team1Wins} - ${draws > 0 ? draws + ' - ' : ''}${h.historical.team2Wins}</div>
+      <div class="compare-h2h-sub">Last ${h.historical.played} meetings (${h.historical.years})</div>
+      ${h.season.played > 0
+        ? `<div class="compare-h2h-sub" style="margin-top:6px">This season: ${a1} ${h.season.team1Wins} win${h.season.team1Wins !== 1 ? 's' : ''} from ${h.season.played} game${h.season.played !== 1 ? 's' : ''}</div>`
+        : `<div class="compare-h2h-sub" style="margin-top:6px">Haven't played each other this season yet</div>`
+      }
+    </div>`;
+
+  // Recent matchups
+  if (data.recentMatchups && data.recentMatchups.length > 0) {
+    document.getElementById('compare-matchups').innerHTML = data.recentMatchups.reverse().map(m => {
+      const isT1Winner = m.winner === data.team1.name;
+      const isT2Winner = m.winner === data.team2.name;
+      return `<div class="compare-matchup-row">
+        <div class="compare-matchup-teams">
+          <span class="${isT1Winner ? 'compare-matchup-winner' : ''}">${abbrev(m.hteam)}</span>
+          <span style="color:var(--muted)"> v </span>
+          <span class="${isT2Winner ? 'compare-matchup-winner' : ''}">${abbrev(m.ateam)}</span>
+        </div>
+        <div class="compare-matchup-score">${m.hscore} - ${m.ascore}</div>
+        <div class="compare-matchup-meta">R${m.round} ${m.year}</div>
+      </div>`;
+    }).join('');
+  } else {
+    document.getElementById('compare-matchups').innerHTML =
+      '<div class="compare-h2h-summary"><div class="compare-h2h-sub">No recent matchups found</div></div>';
+  }
+}
+
+function ordinal(n) {
+  const s = ['th','st','nd','rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
 // ─── Auto-refresh (every 60s if live games) ──────────────────────────────────
