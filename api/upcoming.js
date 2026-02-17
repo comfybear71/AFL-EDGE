@@ -12,8 +12,15 @@ module.exports = async (req, res) => {
     const year     = new Date().getFullYear();
     const upcoming = await squiggle.getUpcoming(year);
 
+    // Also include in-progress and recently completed games for the same round
+    const allGames = await squiggle.getGames(year);
+    const currentRound = upcoming.length > 0 ? upcoming[0].round : null;
+    const roundGames = currentRound
+      ? allGames.filter(g => g.round === currentRound)
+      : upcoming;
+
     // Shape the data nicely for the frontend
-    const matches = upcoming.map(g => ({
+    const matches = roundGames.map(g => ({
       id:         g.id,
       round:      g.round,
       roundName:  g.roundname,
@@ -23,6 +30,9 @@ module.exports = async (req, res) => {
       ateam:      g.ateam,
       hteamid:    g.hteamid,
       ateamid:    g.ateamid,
+      hscore:     g.hscore,
+      ascore:     g.ascore,
+      complete:   g.complete || 0,
       timezone:   g.tz,
     }));
 
