@@ -1121,26 +1121,136 @@
 </div>
 
 <script>
-  // Animate probability bar on load
-  window.addEventListener('load', () => {
+  // ── API base — works on Vercel and locally ──────────────────────────────────
+  // On Vercel this will be your-app.vercel.app/api/...
+  // Locally point to localhost:3000/api/... if running the dev server
+  const API = '';  // empty = same origin (works on Vercel automatically)
+
+  // ── On load: fetch upcoming matches and populate the tabs ──────────────────
+  window.addEventListener('load', async () => {
+    // Animate the default probability bar
     setTimeout(() => {
-      document.getElementById('prob-fill').style.width = '73%';
+      const fill = document.getElementById('prob-fill');
+      if (fill) fill.style.width = '73%';
     }, 300);
+
+    // Try to load live upcoming matches into the tabs
+    try {
+      const res  = await fetch(`${API}/api/upcoming`);
+      const data = await res.json();
+      if (data.matches && data.matches.length > 0) {
+        populateTabs(data.matches);
+      }
+    } catch (e) {
+      console.log('Using demo data — API not connected yet:', e.message);
+    }
   });
 
-  // Tab switching (skeleton — would load real data from API)
+  // ── Populate match tabs from live fixture data ─────────────────────────────
+  function populateTabs(matches) {
+    const container = document.querySelector('.game-tabs');
+    container.innerHTML = '';
+
+    matches.slice(0, 6).forEach((match, i) => {
+      const homeCode = match.squads?.home?.code || '???';
+      const awayCode = match.squads?.away?.code || '???';
+      const tab = document.createElement('div');
+      tab.className = `game-tab${i === 0 ? ' active' : ''}`;
+      tab.innerHTML = `<span>${homeCode}</span><span>v</span><span>${awayCode}</span>`;
+      tab.onclick = () => loadMatch(match.id, tab);
+      container.appendChild(tab);
+    });
+
+    // Auto-load the first match
+    if (matches.length > 0) loadMatch(matches[0].id, container.firstChild);
+  }
+
+  // ── Load a match prediction from the API ───────────────────────────────────
+  async function loadMatch(matchId, tabEl) {
+    // Highlight active tab
+    document.querySelectorAll('.game-tab').forEach(t => t.classList.remove('active'));
+    if (tabEl) tabEl.classList.add('active');
+
+    // Show loading state on the probability bar
+    const fill = document.getElementById('prob-fill');
+    if (fill) fill.style.width = '50%';
+
+    try {
+      const res  = await fetch(`${API}/api/predict?matchId=${matchId}`);
+      const data = await res.json();
+
+      if (data.error) {
+        console.error('Prediction error:', data.error);
+        return;
+      }
+
+      renderPrediction(data);
+
+    } catch (e) {
+      console.error('Failed to load prediction:', e.message);
+    }
+  }
+
+  // ── Render prediction data into the UI ─────────────────────────────────────
+  function renderPrediction(data) {
+    const pred = data.prediction;
+    if (!pred) return;
+
+    const homeProb = pred.home.winProbability;
+    const awayProb = pred.away.winProbability;
+
+    // Win probability bar
+    const fill = document.getElementById('prob-fill');
+    if (fill) fill.style.width = `${homeProb}%`;
+
+    // Probability percentages
+    const probNums = document.querySelectorAll('.prob-pct');
+    if (probNums[0]) probNums[0].textContent = `${homeProb}%`;
+    if (probNums[1]) probNums[1].textContent = `${awayProb}%`;
+
+    // Predicted scores
+    const scoreNums = document.querySelectorAll('.pred-score-num');
+    if (scoreNums[0]) scoreNums[0].textContent = pred.home.predictedScore;
+    if (scoreNums[1]) scoreNums[1].textContent = pred.away.predictedScore;
+
+    // Confidence badge
+    const badge = document.querySelector('.confidence-chip');
+    if (badge && pred.confidence) {
+      badge.textContent = pred.confidence.label;
+      badge.className = `confidence-chip${pred.confidence.color === 'yellow' ? ' medium' : ''}`;
+    }
+
+    // Team names
+    const teamNames = document.querySelectorAll('.team-name');
+    if (teamNames[0]) teamNames[0].textContent = pred.home.team.name || pred.home.team.code;
+    if (teamNames[1]) teamNames[1].textContent = pred.away.team.name || pred.away.team.code;
+
+    // Match info (venue + date)
+    const matchInfo = document.querySelector('.match-info');
+    if (matchInfo && data.match) {
+      matchInfo.textContent = `${data.match.venue?.name || ''} · ${formatDate(data.match.date?.startDate)}`;
+    }
+
+    // Line assessment recommendation
+    if (pred.lineAssessment) {
+      const recs = document.querySelectorAll('.market-bet-sub');
+      if (recs[1]) recs[1].textContent = pred.lineAssessment.recommendation;
+    }
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function formatDate(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase();
+  }
+
+  // ── Tab switching for demo mode (when API not connected) ───────────────────
   function loadGame(gameId) {
     document.querySelectorAll('.game-tab').forEach(t => t.classList.remove('active'));
     event.currentTarget.classList.add('active');
-
-    // In real version: fetch from Champion Data API, re-render predictions
-    const games = {
-      'syd-car': { home: 'SYD', away: 'CAR', prob: 73, predHome: 98, predAway: 76 },
-      'gcs-gee': { home: 'GCS', away: 'GEE', prob: 44, predHome: 82, predAway: 89 },
-      'gws-col': { home: 'GWS', away: 'COL', prob: 52, predHome: 88, predAway: 85 },
-    };
+    // Demo mode — in production this is replaced by loadMatch() above
   }
 </script>
 </body>
 </html>
-
