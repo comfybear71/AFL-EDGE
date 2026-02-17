@@ -1,0 +1,11 @@
+{
+  "name": "afl-edge",
+  "version": "1.0.0",
+  "description": "AFL match & player prediction tool — Vercel deployment",
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
